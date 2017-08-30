@@ -1,6 +1,6 @@
 package main
 
-import {
+import (
         "fmt"
         "log"
         "net/http"
@@ -9,14 +9,10 @@ import {
         "github.com/stack360/faas-ecs/handlers"
         "github.com/gorilla/mux"
 
-        "github.com/aws/aws-sdk-go/aws/service/ecs"
-
-        "github.com/aws/aws-sdk-go/aws"
-        "github.com/aws/aws-sdk-go/aws/awserr"
-        "github.com/aws/aws-sdk-go/aws/request"
-        "github.com/aws/aws-sdk-go/aws/session"
         "github.com/aws/aws-sdk-go/service/ecs"
-}
+        "github.com/aws/aws-sdk-go/aws"
+        "github.com/aws/aws-sdk-go/aws/session"
+）
 
 func main() {
     sess, err := session.NewSession(&aws.Config{
@@ -25,14 +21,14 @@ func main() {
     })
 
     r := mux.NewRouter()
-    svc := ecs.New(sess)
+    ecsClient := ecs.New(sess)
 
-    r.HandleFunc("/system/functions", handlers.MakeFunctionReader(svc)).Methods("GET")
-    r.HandleFunc("/system/functions", handlers.MakeDeployHandler(svc)).Methods("POST")
-    r.HandleFunc("/system/functions", handlers.MakeDeleteHandler(svc)).Methods("DELETE")
+    r.HandleFunc("/system/functions", handlers.MakeFunctionReader(ecsClient)).Methods("GET")
+    r.HandleFunc("/system/functions", handlers.MakeDeployHandler(ecsClient)).Methods("POST")
+    r.HandleFunc("/system/functions", handlers.MakeDeleteHandler(ecsClient)).Methods("DELETE")
 
-    r.HandleFunc("/system/function/{name:[-a-zA-Z_0-9]+}", handlers.MakeReplicaReader(svc)).Methods("GET")
-    R.HandleFunc("/system/scale-function/{name:[-a-zA-Z_0-9]+}", handlers.MakeReplicaUpdater(svc)).Methods("POST")
+    r.HandleFunc("/system/function/{name:[-a-zA-Z_0-9]+}", handlers.MakeReplicaReader(ecsClient)).Methods("GET")
+    R.HandleFunc("/system/scale-function/{name:[-a-zA-Z_0-9]+}", handlers.MakeReplicaUpdater(ecsClient)).Methods("POST")
 
     functionProxy := handlers.MakeProxy()
     r.HandleFunc("/function/{name:[-a-zA-Z_0-9]+}", functionProxy)
