@@ -1,12 +1,14 @@
 package handlers
 
 import (
+    "strings"
     "encoding/json"
     "log"
     "net/http"
 
     "github.com/alexellis/faas/gateway/requests"
     "github.com/aws/aws-sdk-go/service/ecs"
+    "github.com/aws/aws-sdk-go/aws"
 )
 
 type stringInDynArray struct {
@@ -20,8 +22,8 @@ func (s stringInDynArray) Value() string {
     return s.value
 }
 
-func getServiceList(ecsClient *ecs.EcsClient) ([]requests.Function, error) {
-    var functions []requests.functions
+func getServiceList(ecsClient *ecs.ECS) ([]requests.Function, error) {
+    var functions []requests.Function
 
     // first list all raw services from faas cluster
     res, err := ecsClient.ListServices(&ecs.ListServicesInput{
@@ -44,7 +46,9 @@ func getServiceList(ecsClient *ecs.EcsClient) ([]requests.Function, error) {
         if descServicesErr != nil {
             return nil, descServicesErr
         }
-        taskDefinitionName = descServicesResult.services[0].TaskDefinition
+        taskDefinitionName := descServicesResult.Services[0].TaskDefinition
+        serviceName := descServicesResult.Services[0].ServiceName
+        desiredCount := descServicesResult.Services[0].DesiredCount
         taskDefinitionInput := &ecs.DescribeTaskDefinitionInput {
             TaskDefinition: aws.String(*taskDefinitionName),
         }
@@ -53,14 +57,31 @@ func getServiceList(ecsClient *ecs.EcsClient) ([]requests.Function, error) {
             return nil, taskDefinitionErr
         }
         image := taskDefinitionResult.TaskDefinition.ContainerDefinitions[0].Image
-        serviceName := descServicesResult.services[0].ServiceName
         function := requests.Function{
             Name:            *serviceName,
-            Replicas:        nil,
+            Replicas:        uint64(*desiredCount),
             Image:           *image,
             InvocationCount: 0,
         }
         functions = append(functions, function)
     }
     return functions, nil
+}
+
+func MakeFunctionReader(ecsClient *ecs.ECS) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+
+        functions, err := getServiceList(ecsClient)
+        if err != nil {
+            log.Println(err)
+            w.WriteHeader(500)
+            w.Write([]byte(err.Error()))
+            return
+        }
+
+        functionBytes, _ := json.Marshal(functions)
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(200)
+        w.Write(functionBytes)
+    }
 }

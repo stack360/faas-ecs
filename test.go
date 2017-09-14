@@ -31,7 +31,6 @@ func main() {
     })
 
     ecsClient := ecs.New(sess)
-
     //  first list services
     res, err := ecsClient.ListServices(&ecs.ListServicesInput{
         Cluster: aws.String("default"),
@@ -48,7 +47,6 @@ func main() {
     }
     fmt.Printf("aws string slice is %s", awsStringSlice)
     //  s now is a list containing all services from faas cluster
-    fmt.Printf("String array is %s, %s", s)
     fmt.Printf("list services result is %s, error is %s", res.ServiceArns, err)
 
     // describe services
@@ -57,7 +55,8 @@ func main() {
     }
 
     descServicesResult, descServicesErr := ecsClient.DescribeServices(descServicesInput)
-    fmt.Printf("Desribe services result:  error: %s", descServicesErr)
+    fmt.Printf("Desribe services result: %s, error: %s", descServicesResult, descServicesErr)
+    desiredCount := descServicesResult.Services[0].DesiredCount
     taskDefinitionName := descServicesResult.Services[1].TaskDefinition
     serviceName := descServicesResult.Services[0].ServiceName
     // get task definition
@@ -66,5 +65,5 @@ func main() {
     }
     result, errrr := ecsClient.DescribeTaskDefinition(taskDefinitionInput)
     image := result.TaskDefinition.ContainerDefinitions[0].Image
-    fmt.Printf("\nDescribe Task Definition result: %s, error: %s, image: %s, serviceName: %s", result, errrr, *image, *serviceName)
+    fmt.Printf("\nDescribe Task Definition result: %s, error: %s, image: %s, serviceName: %s, \n Desired count : %s", result, errrr, *image, *serviceName, uint64(*desiredCount))
 }
