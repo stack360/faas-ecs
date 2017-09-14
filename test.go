@@ -3,12 +3,12 @@ package main
 import (
         "fmt"
 //        "reflect"
-        "strings"
+//        "strings"
         "github.com/aws/aws-sdk-go/service/ecs"
         "github.com/aws/aws-sdk-go/aws"
 //        "github.com/aws/aws-sdk-go/aws/awserr"
         "github.com/aws/aws-sdk-go/aws/credentials"
-//        "github.com/aws/aws-sdk-go/aws/request"
+//        "github.com/aws/aws-sdk-go/aws/requests"
         "github.com/aws/aws-sdk-go/aws/session"
 )
 
@@ -39,27 +39,32 @@ func main() {
     //  Declare a new list to store service names
     s := []stringInDynArray{}
     for _, item := range res.ServiceArns {
-        s = append(s, stringInDynArray{strings.Split(*item, "/")[1]})
+        //s = append(s, stringInDynArray{strings.Split(*item, "/")[1]})
+        s = append(s, stringInDynArray{*item})
     }
+    awsStringSlice := make([]*string, 0)
+    for _, item := range s {
+        awsStringSlice = append(awsStringSlice, aws.String(item.Value()))
+    }
+    fmt.Printf("aws string slice is %s", awsStringSlice)
     //  s now is a list containing all services from faas cluster
-    fmt.Printf("String array is %s, %s", s[1].Value())
+    fmt.Printf("String array is %s, %s", s)
     fmt.Printf("list services result is %s, error is %s", res.ServiceArns, err)
 
     // describe services
     descServicesInput := &ecs.DescribeServicesInput {
-        Services: []*string{
-              aws.String("arn:aws:ecs:us-west-1:204338471371:service/sample-webapp"),
-        },
+          Services: awsStringSlice,
     }
 
     descServicesResult, descServicesErr := ecsClient.DescribeServices(descServicesInput)
-    fmt.Printf("Desribe services result: %s, error: %s", descServicesResult, descServicesErr)
-
+    fmt.Printf("Desribe services result:  error: %s", descServicesErr)
+    taskDefinitionName := descServicesResult.Services[1].TaskDefinition
+    serviceName := descServicesResult.Services[0].ServiceName
     // get task definition
     taskDefinitionInput := &ecs.DescribeTaskDefinitionInput {
-        TaskDefinition: aws.String("console-sample-app-static:1"),
+        TaskDefinition: aws.String(*taskDefinitionName),
     }
-
     result, errrr := ecsClient.DescribeTaskDefinition(taskDefinitionInput)
-    fmt.Printf("\nDescribe Task Definition result: %s, error: %s", result, errrr)
+    image := result.TaskDefinition.ContainerDefinitions[0].Image
+    fmt.Printf("\nDescribe Task Definition result: %s, error: %s, image: %s, serviceName: %s", result, errrr, *image, *serviceName)
 }

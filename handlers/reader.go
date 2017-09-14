@@ -34,8 +34,33 @@ func getServiceList(ecsClient *ecs.EcsClient) ([]requests.Function, error) {
     // Declare a new array to store service names
     s := []stringInDynArray{}
     for _, item := range res.ServiceArns {
-        s = append(s, stringInDynArray{strings.Split(*item, "/")[1]})
+        name := strings.Split(*item, "/")[1]
+        descServicesInput := &ecs.DescribeServicesInput {
+            Services: []*string{
+                  aws.String(*item),
+            },
+        }
+        descServicesResult, descServicesErr := ecsClient.DescribeServices(descServicesInput)
+        if descServicesErr != nil {
+            return nil, descServicesErr
+        }
+        taskDefinitionName = descServicesResult.services[0].TaskDefinition
+        taskDefinitionInput := &ecs.DescribeTaskDefinitionInput {
+            TaskDefinition: aws.String(*taskDefinitionName),
+        }
+        taskDefinitionResult, taskDefinitionErr := ecsClient.DescribeTaskDefinition(taskDefinitionInput)
+        if taskDefinitionErr != nil {
+            return nil, taskDefinitionErr
+        }
+        image := taskDefinitionResult.TaskDefinition.ContainerDefinitions[0].Image
+        serviceName := descServicesResult.services[0].ServiceName
+        function := requests.Function{
+            Name:            *serviceName,
+            Replicas:        nil,
+            Image:           *image,
+            InvocationCount: 0,
+        }
+        functions = append(functions, function)
     }
-    // s now is a list containing all services from faas cluster
     return functions, nil
 }
