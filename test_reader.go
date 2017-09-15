@@ -2,7 +2,7 @@ package main
 
 import (
         "fmt"
-//        "reflect"
+        "reflect"
 //        "strings"
         "github.com/aws/aws-sdk-go/service/ecs"
         "github.com/aws/aws-sdk-go/aws"

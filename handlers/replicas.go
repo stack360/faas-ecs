@@ -34,6 +34,20 @@ func MakeReplicaUpdater(ecsClient *ecs.EcsClient) http.HandlerFunc {
             }
         }
 
+        updateServiceInput := &ecs.UpdateServiceInput {
+            Cluster:        aws.String("faas"),
+            DesiredCount:   aws.Int64(req.Replicas),
+            Service:        aws.String(functionName),
+        }
+
+        updateServiceResult, updateServiceErr := ecsClient.UpdateService(updateServiceInput)
+
+        if updateServiceErr != nil {
+            w.WriteHeader(500),
+            w.Write([]byte("Unable to update function deployment " + functionName))
+            log.Println(updateServiceErr)
+            return
+        }
     }
 
 }
