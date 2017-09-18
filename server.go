@@ -11,6 +11,7 @@ import (
 
         "github.com/aws/aws-sdk-go/service/ecs"
         "github.com/aws/aws-sdk-go/aws"
+        "github.com/aws/aws-sdk-go/aws/credentials"
         "github.com/aws/aws-sdk-go/aws/session"
 )
 
@@ -28,7 +29,7 @@ func main() {
     r.HandleFunc("/system/functions", handlers.MakeDeleteHandler(ecsClient)).Methods("DELETE")
 
     r.HandleFunc("/system/function/{name:[-a-zA-Z_0-9]+}", handlers.MakeReplicaReader(ecsClient)).Methods("GET")
-    R.HandleFunc("/system/scale-function/{name:[-a-zA-Z_0-9]+}", handlers.MakeReplicaUpdater(ecsClient)).Methods("POST")
+    r.HandleFunc("/system/scale-function/{name:[-a-zA-Z_0-9]+}", handlers.MakeReplicaUpdater(ecsClient)).Methods("POST")
 
     functionProxy := handlers.MakeProxy()
     r.HandleFunc("/function/{name:[-a-zA-Z_0-9]+}", functionProxy)
@@ -46,5 +47,5 @@ func main() {
         Handler:        r,
     }
 
-    log.Fatal(s.ListenandServe())
+    log.Fatal(s.ListenAndServe())
 }
